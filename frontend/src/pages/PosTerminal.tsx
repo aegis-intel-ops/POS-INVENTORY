@@ -4,20 +4,36 @@ import { db, type Product, type OrderItem } from '../db/db';
 import ProductGrid from '../components/ProductGrid';
 import Cart from '../components/Cart';
 import OrderConfirmationModal from '../components/OrderConfirmationModal';
+import ReceiptModal from '../components/ReceiptModal';
 import { calculateGhanaTax } from '../modules/TaxEngine';
+
+interface OrderDetails {
+    items: OrderItem[];
+    subtotal: number;
+    nhil: number;
+    getfund: number;
+    covid: number;
+    vat: number;
+    totalTax: number;
+    grandTotal: number;
+    paymentMethod: 'cash' | 'momo';
+    createdAt: Date;
+}
 
 const PosTerminal: React.FC = () => {
     const products = useLiveQuery(() => db.products.toArray(), []) || [];
     const [cartItems, setCartItems] = useState<OrderItem[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
 
-    // Modal state
-    const [showModal, setShowModal] = useState(false);
+    // Modal states
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [showReceiptModal, setShowReceiptModal] = useState(false);
     const [orderResult, setOrderResult] = useState<{
         success: boolean;
         total: number;
         paymentMethod: 'cash' | 'momo';
     } | null>(null);
+    const [lastOrderDetails, setLastOrderDetails] = useState<OrderDetails | null>(null);
 
     // Filter products based on search query
     const filteredProducts = products.filter(p =>
@@ -64,6 +80,7 @@ const PosTerminal: React.FC = () => {
         try {
             const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             const tax = calculateGhanaTax(subtotal);
+            const createdAt = new Date();
 
             await db.orders.add({
                 items: cartItems,
@@ -71,23 +88,42 @@ const PosTerminal: React.FC = () => {
                 totalTax: tax.totalTax,
                 status: 'completed',
                 paymentMethod: method,
-                createdAt: new Date(),
+                createdAt,
                 synced: false
+            });
+
+            // Store order details for receipt
+            setLastOrderDetails({
+                items: [...cartItems],
+                subtotal,
+                nhil: tax.nhil,
+                getfund: tax.getfund,
+                covid: tax.covid,
+                vat: tax.vat,
+                totalTax: tax.totalTax,
+                grandTotal: tax.grandTotal,
+                paymentMethod: method,
+                createdAt
             });
 
             setCartItems([]);
             setOrderResult({ success: true, total: tax.grandTotal, paymentMethod: method });
-            setShowModal(true);
+            setShowConfirmModal(true);
         } catch (error) {
             console.error("Order Failed", error);
             setOrderResult({ success: false, total: 0, paymentMethod: method });
-            setShowModal(true);
+            setShowConfirmModal(true);
         }
     };
 
-    const handleCloseModal = () => {
-        setShowModal(false);
+    const handleCloseConfirmModal = () => {
+        setShowConfirmModal(false);
         setOrderResult(null);
+    };
+
+    const handleViewReceipt = () => {
+        setShowConfirmModal(false);
+        setShowReceiptModal(true);
     };
 
     return (
@@ -115,13 +151,20 @@ const PosTerminal: React.FC = () => {
 
             {orderResult && (
                 <OrderConfirmationModal
-                    isOpen={showModal}
-                    onClose={handleCloseModal}
+                    isOpen={showConfirmModal}
+                    onClose={handleCloseConfirmModal}
                     success={orderResult.success}
                     total={orderResult.total}
                     paymentMethod={orderResult.paymentMethod}
+                    onViewReceipt={handleViewReceipt}
                 />
             )}
+
+            <ReceiptModal
+                isOpen={showReceiptModal}
+                onClose={() => setShowReceiptModal(false)}
+                orderDetails={lastOrderDetails}
+            />
         </>
     );
 };

@@ -65,7 +65,10 @@ export const SyncService = {
                     name: p.name,
                     price: p.price,
                     category: p.category,
-                    taxGroup: p.tax_group // Map snake_case to camelCase
+                    taxGroup: p.tax_group, // Map snake_case to camelCase
+                    stockQuantity: p.stock_quantity,
+                    lowStockThreshold: p.low_stock_threshold,
+                    unit: p.unit
                 }));
 
                 // Clear existing products and replace with backend data (source of truth)

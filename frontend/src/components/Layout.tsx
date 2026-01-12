@@ -1,9 +1,18 @@
 import React from 'react';
-import { Link, Outlet } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate, Link, Outlet } from 'react-router-dom';
 import { clsx } from 'clsx';
-import { FaStore, FaChartBar, FaSync, FaCog } from 'react-icons/fa';
+import { FaStore, FaChartBar, FaSync, FaCog, FaSignOutAlt } from 'react-icons/fa';
 
 const Layout: React.FC = () => {
+    const { user, logout } = useAuth();
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
+
     return (
         <div className="flex h-screen bg-gray-100 text-gray-900 font-sans overflow-hidden">
             {/* Sidebar Navigation */}
@@ -19,7 +28,15 @@ const Layout: React.FC = () => {
                     <NavItem to="/settings" icon={<FaCog />} label="Settings" />
                 </nav>
 
-                <div className="mt-auto w-full">
+                <div className="mt-auto w-full space-y-4">
+                    <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center justify-center lg:justify-start space-x-3 p-3 rounded-lg text-red-400 hover:bg-white/10 hover:text-red-300 transition-colors"
+                    >
+                        <span className="text-xl"><FaSignOutAlt /></span>
+                        <span className="hidden lg:inline font-medium">Sign Out</span>
+                    </button>
+
                     <div className="flex items-center justify-center lg:justify-start space-x-2 p-2 rounded hover:bg-white/10 cursor-pointer">
                         <FaSync className="text-gray-400" />
                         <span className="hidden lg:inline text-sm text-gray-300">Sync Active</span>
@@ -32,8 +49,13 @@ const Layout: React.FC = () => {
                 <header className="h-16 bg-white border-b flex items-center justify-between px-6 shadow-sm flex-shrink-0">
                     <h1 className="text-xl font-semibold">Point of Sale</h1>
                     <div className="flex items-center space-x-4">
-                        <span className="text-sm text-gray-500">Kofi Admin</span>
-                        <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">K</div>
+                        <div className="text-right hidden md:block">
+                            <p className="text-sm font-semibold text-gray-800">{user?.username || 'User'}</p>
+                            <p className="text-xs text-gray-500 capitalize">{user?.role || 'Staff'}</p>
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">
+                            {user?.username?.charAt(0).toUpperCase() || 'U'}
+                        </div>
                     </div>
                 </header>
 

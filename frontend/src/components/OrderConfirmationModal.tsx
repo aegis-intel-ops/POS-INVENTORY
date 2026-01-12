@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { FaCheckCircle, FaTimesCircle, FaTimes } from 'react-icons/fa';
+import { FaCheckCircle, FaTimesCircle, FaTimes, FaReceipt } from 'react-icons/fa';
 
 interface OrderConfirmationModalProps {
     isOpen: boolean;
@@ -7,6 +7,7 @@ interface OrderConfirmationModalProps {
     success: boolean;
     total: number;
     paymentMethod: 'cash' | 'momo';
+    onViewReceipt?: () => void;
 }
 
 const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
@@ -14,12 +15,13 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
     onClose,
     success,
     total,
-    paymentMethod
+    paymentMethod,
+    onViewReceipt
 }) => {
-    // Auto-dismiss after 3 seconds on success
+    // Auto-dismiss after 5 seconds on success (increased for receipt button)
     useEffect(() => {
         if (isOpen && success) {
-            const timer = setTimeout(onClose, 3000);
+            const timer = setTimeout(onClose, 5000);
             return () => clearTimeout(timer);
         }
     }, [isOpen, success, onClose]);
@@ -50,7 +52,17 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
                                 <p className="text-sm text-gray-500">Total Amount</p>
                                 <p className="text-3xl font-bold text-primary">₵{total.toFixed(2)}</p>
                             </div>
-                            <p className="text-sm text-gray-400">Receipt printed. This modal will close automatically.</p>
+
+                            {onViewReceipt && (
+                                <button
+                                    onClick={onViewReceipt}
+                                    className="flex items-center justify-center space-x-2 w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 mb-3"
+                                >
+                                    <FaReceipt /> <span>View Receipt</span>
+                                </button>
+                            )}
+
+                            <p className="text-sm text-gray-400">This modal will close automatically.</p>
                         </>
                     ) : (
                         <>

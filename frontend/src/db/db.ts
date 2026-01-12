@@ -6,6 +6,9 @@ export interface Product {
     price: number;
     category: string;
     taxGroup: 'VAT_standard' | 'VAT_exempt';
+    stockQuantity?: number;
+    lowStockThreshold?: number;
+    unit?: string;
 }
 
 export interface OrderItem {
