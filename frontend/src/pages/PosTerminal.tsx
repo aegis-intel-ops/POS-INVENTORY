@@ -1,32 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Product, type OrderItem } from '../db/db';
 import ProductGrid from '../components/ProductGrid';
 import Cart from '../components/Cart';
+import OrderConfirmationModal from '../components/OrderConfirmationModal';
 import { calculateGhanaTax } from '../modules/TaxEngine';
 
 const PosTerminal: React.FC = () => {
     const products = useLiveQuery(() => db.products.toArray(), []) || [];
     const [cartItems, setCartItems] = useState<OrderItem[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
-    // Seed Dummy Data if empty
-    useEffect(() => {
-        const seedDatabase = async () => {
-            const count = await db.products.count();
-            if (count === 0) {
-                await db.products.bulkAdd([
-                    { name: 'Jollof Rice & Chicken', price: 45.00, category: 'Main', taxGroup: 'VAT_standard' },
-                    { name: 'Waakye Special', price: 35.00, category: 'Main', taxGroup: 'VAT_standard' },
-                    { name: 'Fried Rice & Fish', price: 40.00, category: 'Main', taxGroup: 'VAT_standard' },
-                    { name: 'Banku & Tilapia', price: 55.00, category: 'Main', taxGroup: 'VAT_standard' },
-                    { name: 'Sobolo (Bottle)', price: 5.00, category: 'Drinks', taxGroup: 'VAT_standard' },
-                    { name: 'Mineral Water', price: 3.00, category: 'Drinks', taxGroup: 'VAT_standard' },
-                ]);
-            }
-        };
-        seedDatabase();
-    }, []);
+    // Modal state
+    const [showModal, setShowModal] = useState(false);
+    const [orderResult, setOrderResult] = useState<{
+        success: boolean;
+        total: number;
+        paymentMethod: 'cash' | 'momo';
+    } | null>(null);
+
+    // Filter products based on search query
+    const filteredProducts = products.filter(p =>
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.category.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     const handleAddToCart = (product: Product) => {
         setCartItems(prev => {
@@ -42,7 +39,7 @@ const PosTerminal: React.FC = () => {
                 name: product.name,
                 price: product.price,
                 quantity: 1,
-                taxAmount: 0 // Tax calculated at order time for now
+                taxAmount: 0
             }];
         });
     };
@@ -64,7 +61,6 @@ const PosTerminal: React.FC = () => {
     };
 
     const handlePlaceOrder = async (method: 'cash' | 'momo') => {
-        setLoading(true);
         try {
             const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             const tax = calculateGhanaTax(subtotal);
@@ -80,34 +76,53 @@ const PosTerminal: React.FC = () => {
             });
 
             setCartItems([]);
-            alert('Order Placed Successfully! Mock receipt printed.');
+            setOrderResult({ success: true, total: tax.grandTotal, paymentMethod: method });
+            setShowModal(true);
         } catch (error) {
             console.error("Order Failed", error);
-            alert('Order Failed');
-        } finally {
-            setLoading(false);
+            setOrderResult({ success: false, total: 0, paymentMethod: method });
+            setShowModal(true);
         }
     };
 
+    const handleCloseModal = () => {
+        setShowModal(false);
+        setOrderResult(null);
+    };
+
     return (
-        <div className="flex h-full">
-            <div className="flex-1 overflow-auto p-4">
-                <input
-                    type="text"
-                    placeholder="Search products..."
-                    className="w-full p-4 mb-4 border rounded-xl shadow-sm focus:ring-2 focus:ring-primary outline-none"
-                />
-                <ProductGrid products={products} onAddToCart={handleAddToCart} />
+        <>
+            <div className="flex h-full">
+                <div className="flex-1 overflow-auto p-4">
+                    <input
+                        type="text"
+                        placeholder="Search products..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full p-4 mb-4 border rounded-xl shadow-sm focus:ring-2 focus:ring-primary outline-none"
+                    />
+                    <ProductGrid products={filteredProducts} onAddToCart={handleAddToCart} />
+                </div>
+                <div className="w-96 flex-shrink-0">
+                    <Cart
+                        items={cartItems}
+                        onUpdateQuantity={handleUpdateQuantity}
+                        onRemoveItem={handleRemoveItem}
+                        onPlaceOrder={handlePlaceOrder}
+                    />
+                </div>
             </div>
-            <div className="w-96 flex-shrink-0">
-                <Cart
-                    items={cartItems}
-                    onUpdateQuantity={handleUpdateQuantity}
-                    onRemoveItem={handleRemoveItem}
-                    onPlaceOrder={handlePlaceOrder}
+
+            {orderResult && (
+                <OrderConfirmationModal
+                    isOpen={showModal}
+                    onClose={handleCloseModal}
+                    success={orderResult.success}
+                    total={orderResult.total}
+                    paymentMethod={orderResult.paymentMethod}
                 />
-            </div>
-        </div>
+            )}
+        </>
     );
 };
 

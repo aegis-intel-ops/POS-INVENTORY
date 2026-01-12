@@ -68,9 +68,10 @@ export const SyncService = {
                     taxGroup: p.tax_group // Map snake_case to camelCase
                 }));
 
-                // Bulk put (upsert)
-                await db.products.bulkPut(mappedProducts);
-                console.log(`Synced ${mappedProducts.length} products`);
+                // Clear existing products and replace with backend data (source of truth)
+                await db.products.clear();
+                await db.products.bulkAdd(mappedProducts);
+                console.log(`Synced ${mappedProducts.length} products (replaced local data)`);
             }
         } catch (error) {
             console.error('Product sync failed', error);
