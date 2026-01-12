@@ -53,7 +53,6 @@ def create_user(
 ):
     check_admin(current_user)
     
-    # Check existing
     existing = db.query(models.User).filter(models.User.username == user.username).first()
     if existing:
         raise HTTPException(status_code=400, detail="Username already registered")
@@ -71,6 +70,24 @@ def create_user(
     db.commit()
     db.refresh(new_user)
     return new_user
+
+class PasswordChange(BaseModel):
+    old_password: str
+    new_password: str
+
+@router.put("/password")
+def change_password(
+    pwd_data: PasswordChange,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    from app.api.auth import verify_password
+    if not verify_password(pwd_data.old_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Incorrect old password")
+    
+    current_user.hashed_password = get_password_hash(pwd_data.new_password)
+    db.commit()
+    return {"message": "Password updated successfully"}
 
 @router.delete("/{user_id}")
 def delete_user(

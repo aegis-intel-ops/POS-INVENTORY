@@ -8,6 +8,7 @@ import ReceiptModal from '../components/ReceiptModal';
 import ShiftModal from '../components/ShiftModal';
 import { useAuth } from '../context/AuthContext';
 import { calculateGhanaTax } from '../modules/TaxEngine';
+import { SyncService } from '../services/SyncService';
 
 interface OrderDetails {
     items: OrderItem[];
@@ -94,6 +95,9 @@ const PosTerminal: React.FC = () => {
                 createdAt,
                 synced: false
             });
+
+            // Trigger immediate sync for Kitchen Display
+            SyncService.syncOrders().catch(console.error);
 
             // Store order details for receipt
             setLastOrderDetails({

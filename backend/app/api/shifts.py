@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from typing import Optional, List
 from datetime import datetime
 from app import models
@@ -20,6 +20,7 @@ class ShiftEnd(BaseModel):
 class ShiftResponse(BaseModel):
     id: int
     user_id: int
+    username: Optional[str] = None
     start_time: datetime
     end_time: Optional[datetime]
     opening_cash: float
@@ -29,6 +30,11 @@ class ShiftResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+# Wait, the correct way to computed field from ORM in Pydantic V2 is using @field_validator with mode='before' 
+# BUT getting the parent object is hard.
+# EASIER WAY: Flatten it in the API function.
+
 
 # Endpoints
 @router.post("/start", response_model=ShiftResponse)
@@ -105,4 +111,18 @@ def get_shift_history(
     if current_user.role != "admin":
         query = query.filter(models.Shift.user_id == current_user.id)
         
-    return query.order_by(models.Shift.start_time.desc()).limit(limit).all()
+    shifts = query.order_by(models.Shift.start_time.desc()).limit(limit).all()
+    
+    # Manually populate username for response
+    # We can do this because we are returning a list of Pydantic models (implicitly)
+    # But to set a property on a SQLAlchemy model that isn't a column is tricky unless we convert to dict.
+    # Or strict Pydantic parsing.
+    
+    results = []
+    for shift in shifts:
+        shift_dict = shift.__dict__.copy()
+        if shift.user:
+            shift_dict['username'] = shift.user.username
+        results.append(shift_dict)
+        
+    return results

@@ -2,18 +2,27 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, Outlet } from 'react-router-dom';
 import { clsx } from 'clsx';
-import { FaStore, FaChartBar, FaSync, FaCog, FaSignOutAlt, FaClock, FaUsers } from 'react-icons/fa';
+import { FaStore, FaChartBar, FaCog, FaSignOutAlt, FaBoxOpen, FaUsers, FaUtensils, FaClock, FaSync, FaLock } from 'react-icons/fa';
 import ShiftModal from './ShiftModal';
+import ChangePasswordModal from './ChangePasswordModal';
 
 const Layout: React.FC = () => {
     const { user, logout, activeShift, endShift } = useAuth();
     const navigate = useNavigate();
     const [showEndShiftModal, setShowEndShiftModal] = useState(false);
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
 
     const handleLogout = () => {
         logout();
         navigate('/login');
     };
+
+    // Redirect Kitchen users to /kitchen if they hit root
+    React.useEffect(() => {
+        if (user?.role === 'kitchen' && window.location.pathname === '/') {
+            navigate('/kitchen');
+        }
+    }, [user, navigate]);
 
     return (
         <div className="flex h-screen bg-gray-100 text-gray-900 font-sans overflow-hidden">
@@ -25,7 +34,17 @@ const Layout: React.FC = () => {
                 </div>
 
                 <nav className="flex-1 w-full space-y-2">
-                    <NavItem to="/" icon={<FaStore />} label="Terminal" />
+                    {/* Terminal Access */}
+                    {(user?.role === 'admin' || user?.role === 'cashier') && (
+                        <NavItem to="/" icon={<FaStore />} label="Terminal" />
+                    )}
+
+                    {/* Kitchen Role Access */}
+                    {(user?.role === 'admin' || user?.role === 'kitchen') && (
+                        <NavItem to="/kitchen" icon={<FaUtensils />} label="Kitchen" />
+                    )}
+
+                    {/* Admin Role Access */}
                     {user?.role === 'admin' && (
                         <>
                             <NavItem to="/reports" icon={<FaChartBar />} label="Reports" />
@@ -46,13 +65,23 @@ const Layout: React.FC = () => {
                         </button>
                     )}
 
-                    <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center justify-center lg:justify-start space-x-3 p-3 rounded-lg text-red-400 hover:bg-white/10 hover:text-red-300 transition-colors"
-                    >
-                        <span className="text-xl"><FaSignOutAlt /></span>
-                        <span className="hidden lg:inline font-medium">Sign Out</span>
-                    </button>
+                    <div className="grid grid-cols-1 gap-2 w-full">
+                        <button
+                            onClick={() => setShowPasswordModal(true)}
+                            className="w-full flex items-center justify-center lg:justify-start space-x-3 p-3 rounded-lg text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
+                        >
+                            <span className="text-xl"><FaLock /></span>
+                            <span className="hidden lg:inline font-medium">Password</span>
+                        </button>
+
+                        <button
+                            onClick={handleLogout}
+                            className="w-full flex items-center justify-center lg:justify-start space-x-3 p-3 rounded-lg text-red-400 hover:bg-white/10 hover:text-red-300 transition-colors"
+                        >
+                            <span className="text-xl"><FaSignOutAlt /></span>
+                            <span className="hidden lg:inline font-medium">Sign Out</span>
+                        </button>
+                    </div>
 
                     <div className="flex items-center justify-center lg:justify-start space-x-2 p-2 rounded hover:bg-white/10 cursor-pointer">
                         <FaSync className="text-gray-400" />
@@ -87,10 +116,11 @@ const Layout: React.FC = () => {
                 onConfirm={async (amount, notes) => {
                     await endShift(amount, notes);
                     setShowEndShiftModal(false);
-                    navigate('/login'); // Force re-login after shift close? Or just stay? Usually re-login.
+                    navigate('/login');
                 }}
                 onCancel={() => setShowEndShiftModal(false)}
             />
+            <ChangePasswordModal isOpen={showPasswordModal} onClose={() => setShowPasswordModal(false)} />
         </div>
     );
 };

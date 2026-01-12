@@ -237,10 +237,7 @@ const ReportsDashboard: React.FC = () => {
                                         <tr key={shift.id} className="hover:bg-gray-50">
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">#{shift.id}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                {/* Backend returns user_id, need to fetch username? Or backend includes user object? */}
-                                                {/* Backend query: db.query(models.Shift).all()... Model has 'user' relationship */}
-                                                {/* Check if response schema includes user details. Typically assumes user_id. */}
-                                                User #{shift.user_id}
+                                                {shift.username || `User #${shift.user_id}`}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                 {new Date(shift.start_time).toLocaleString()}

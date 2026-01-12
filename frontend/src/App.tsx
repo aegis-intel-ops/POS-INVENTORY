@@ -6,6 +6,7 @@ import PosTerminal from './pages/PosTerminal';
 import ReportsDashboard from './pages/ReportsDashboard';
 import ProductManagement from './pages/ProductManagement';
 import UserManagement from './pages/UserManagement';
+import KitchenDisplay from './pages/KitchenDisplay';
 
 function App() {
 
@@ -20,7 +21,16 @@ function App() {
               <Layout />
             </ProtectedRoute>
           }>
-            <Route index element={<PosTerminal />} />
+            <Route index element={
+              <ProtectedRoute allowedRoles={['admin', 'cashier']}>
+                <PosTerminal />
+              </ProtectedRoute>
+            } />
+            <Route path="kitchen" element={
+              <ProtectedRoute allowedRoles={['admin', 'kitchen']}>
+                <KitchenDisplay />
+              </ProtectedRoute>
+            } />
             <Route path="reports" element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <ReportsDashboard />
