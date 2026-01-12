@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api import sync, auth
+from app.api import sync, auth, shifts, users
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Ghana Restaurant OS Backend")
@@ -15,6 +15,8 @@ app.add_middleware(
 
 app.include_router(sync.router)
 app.include_router(auth.router)
+app.include_router(shifts.router)
+app.include_router(users.router)
 
 # Create tables on startup
 from app.database import engine

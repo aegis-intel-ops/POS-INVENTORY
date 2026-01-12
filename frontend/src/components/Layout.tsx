@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, Outlet } from 'react-router-dom';
 import { clsx } from 'clsx';
-import { FaStore, FaChartBar, FaSync, FaCog, FaSignOutAlt } from 'react-icons/fa';
+import { FaStore, FaChartBar, FaSync, FaCog, FaSignOutAlt, FaClock, FaUsers } from 'react-icons/fa';
+import ShiftModal from './ShiftModal';
 
 const Layout: React.FC = () => {
-    const { user, logout } = useAuth();
+    const { user, logout, activeShift, endShift } = useAuth();
     const navigate = useNavigate();
+    const [showEndShiftModal, setShowEndShiftModal] = useState(false);
 
     const handleLogout = () => {
         logout();
@@ -23,12 +25,27 @@ const Layout: React.FC = () => {
                 </div>
 
                 <nav className="flex-1 w-full space-y-2">
-                    <NavItem to="/" icon={<FaStore />} label="Terminal" active />
-                    <NavItem to="/reports" icon={<FaChartBar />} label="Reports" />
-                    <NavItem to="/settings" icon={<FaCog />} label="Settings" />
+                    <NavItem to="/" icon={<FaStore />} label="Terminal" />
+                    {user?.role === 'admin' && (
+                        <>
+                            <NavItem to="/reports" icon={<FaChartBar />} label="Reports" />
+                            <NavItem to="/settings" icon={<FaCog />} label="Products" />
+                            <NavItem to="/users" icon={<FaUsers />} label="Users" />
+                        </>
+                    )}
                 </nav>
 
                 <div className="mt-auto w-full space-y-4">
+                    {activeShift && (
+                        <button
+                            onClick={() => setShowEndShiftModal(true)}
+                            className="w-full flex items-center justify-center lg:justify-start space-x-3 p-3 rounded-lg text-yellow-400 hover:bg-white/10 hover:text-yellow-300 transition-colors"
+                        >
+                            <span className="text-xl"><FaClock /></span>
+                            <span className="hidden lg:inline font-medium">End Shift</span>
+                        </button>
+                    )}
+
                     <button
                         onClick={handleLogout}
                         className="w-full flex items-center justify-center lg:justify-start space-x-3 p-3 rounded-lg text-red-400 hover:bg-white/10 hover:text-red-300 transition-colors"
@@ -63,6 +80,17 @@ const Layout: React.FC = () => {
                     <Outlet />
                 </div>
             </main>
+
+            <ShiftModal
+                isOpen={showEndShiftModal}
+                mode="end"
+                onConfirm={async (amount, notes) => {
+                    await endShift(amount, notes);
+                    setShowEndShiftModal(false);
+                    navigate('/login'); // Force re-login after shift close? Or just stay? Usually re-login.
+                }}
+                onCancel={() => setShowEndShiftModal(false)}
+            />
         </div>
     );
 };

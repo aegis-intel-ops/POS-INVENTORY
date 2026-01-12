@@ -11,14 +11,29 @@ interface User {
     is_active: boolean;
 }
 
+export interface Shift {
+    id: number;
+    user_id: number;
+    start_time: string;
+    end_time?: string;
+    opening_cash: number;
+    closing_cash?: number;
+    notes?: string;
+    is_active: boolean;
+}
+
 interface AuthContextType {
     user: User | null;
     token: string | null;
+    activeShift: Shift | null;
     isLoading: boolean;
     isAuthenticated: boolean;
     login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
     logout: () => void;
     hasRole: (...roles: string[]) => boolean;
+    startShift: (openingCash: number) => Promise<boolean>;
+    endShift: (closingCash: number, notes?: string) => Promise<boolean>;
+    checkActiveShift: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,6 +42,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(null);
+    const [activeShift, setActiveShift] = useState<Shift | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     // Check for existing token on mount
@@ -37,7 +53,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (storedToken && storedUser) {
             setToken(storedToken);
             setUser(JSON.parse(storedUser));
-            // Optionally validate token with /auth/me endpoint
             validateToken(storedToken);
         } else {
             setIsLoading(false);
@@ -47,16 +62,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const validateToken = async (tokenToValidate: string) => {
         try {
             const response = await fetch(`${API_URL}/auth/me`, {
-                headers: {
-                    'Authorization': `Bearer ${tokenToValidate}`
-                }
+                headers: { 'Authorization': `Bearer ${tokenToValidate}` }
             });
 
             if (response.ok) {
                 const userData = await response.json();
                 setUser(userData);
+                // Check shift status
+                checkActiveShift(tokenToValidate);
             } else {
-                // Token invalid, clear storage
                 logout();
             }
         } catch (error) {
@@ -66,14 +80,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     };
 
+    const checkActiveShift = async (currentToken: string = token!) => {
+        if (!currentToken) return;
+        try {
+            const response = await fetch(`${API_URL}/shifts/active`, {
+                headers: { 'Authorization': `Bearer ${currentToken}` }
+            });
+            if (response.ok) {
+                const shift = await response.json();
+                setActiveShift(shift); // simplified: endpoint returns null or object
+            } else {
+                setActiveShift(null);
+            }
+        } catch (e) {
+            console.error("Failed to check shift", e);
+        }
+    };
+
     const login = async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
         try {
-            // Use JSON login to avoid multipart form issues
             const response = await fetch(`${API_URL}/auth/login-json`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })
             });
 
@@ -83,6 +111,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 setUser(data.user);
                 localStorage.setItem('pos_token', data.access_token);
                 localStorage.setItem('pos_user', JSON.stringify(data.user));
+
+                // check shift immediately
+                await checkActiveShift(data.access_token);
+
                 return { success: true };
             } else {
                 const errorData = await response.json();
@@ -94,9 +126,55 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     };
 
+    const startShift = async (openingCash: number): Promise<boolean> => {
+        if (!token) return false;
+        try {
+            const response = await fetch(`${API_URL}/shifts/start`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ opening_cash: openingCash })
+            });
+            if (response.ok) {
+                const shift = await response.json();
+                setActiveShift(shift);
+                return true;
+            }
+            return false;
+        } catch (e) {
+            console.error(e);
+            return false;
+        }
+    };
+
+    const endShift = async (closingCash: number, notes?: string): Promise<boolean> => {
+        if (!token || !activeShift) return false;
+        try {
+            const response = await fetch(`${API_URL}/shifts/${activeShift.id}/end`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ closing_cash: closingCash, notes })
+            });
+            if (response.ok) {
+                setActiveShift(null);
+                return true;
+            }
+            return false;
+        } catch (e) {
+            console.error(e);
+            return false;
+        }
+    };
+
     const logout = () => {
         setToken(null);
         setUser(null);
+        setActiveShift(null);
         localStorage.removeItem('pos_token');
         localStorage.removeItem('pos_user');
     };
@@ -108,11 +186,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const value: AuthContextType = {
         user,
         token,
+        activeShift,
         isLoading,
         isAuthenticated: user !== null,
         login,
         logout,
-        hasRole
+        hasRole,
+        startShift,
+        endShift,
+        checkActiveShift: () => checkActiveShift(token!)
     };
 
     return (

@@ -5,6 +5,8 @@ import ProductGrid from '../components/ProductGrid';
 import Cart from '../components/Cart';
 import OrderConfirmationModal from '../components/OrderConfirmationModal';
 import ReceiptModal from '../components/ReceiptModal';
+import ShiftModal from '../components/ShiftModal';
+import { useAuth } from '../context/AuthContext';
 import { calculateGhanaTax } from '../modules/TaxEngine';
 
 interface OrderDetails {
@@ -21,6 +23,7 @@ interface OrderDetails {
 }
 
 const PosTerminal: React.FC = () => {
+    const { activeShift, startShift } = useAuth();
     const products = useLiveQuery(() => db.products.toArray(), []) || [];
     const [cartItems, setCartItems] = useState<OrderItem[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -128,7 +131,21 @@ const PosTerminal: React.FC = () => {
 
     return (
         <>
-            <div className="flex h-full">
+            {/* Shift Enforcement */}
+            {!activeShift && (
+                <div className="absolute inset-0 z-50 bg-gray-100/50 backdrop-blur-sm">
+                    <ShiftModal
+                        isOpen={true}
+                        mode="start"
+                        onConfirm={async (amount) => {
+                            await startShift(amount);
+                        }}
+                        onCancel={() => { }} // Cannot cancel starting a shift to access POS
+                    />
+                </div>
+            )}
+
+            <div className={`flex h-full ${!activeShift ? 'filter blur-sm pointer-events-none' : ''}`}>
                 <div className="flex-1 overflow-auto p-4">
                     <input
                         type="text"
