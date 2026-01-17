@@ -80,7 +80,7 @@ const PosTerminal: React.FC = () => {
         setCartItems(prev => prev.filter((_, i) => i !== index));
     };
 
-    const handlePlaceOrder = async (method: 'cash' | 'momo') => {
+    const handlePlaceOrder = async (method: 'cash' | 'momo', details?: { amountTendered?: number, changeDue?: number, referenceNumber?: string }) => {
         try {
             const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             const tax = calculateGhanaTax(subtotal);
@@ -93,7 +93,10 @@ const PosTerminal: React.FC = () => {
                 status: 'completed',
                 paymentMethod: method,
                 createdAt,
-                synced: false
+                synced: false,
+                amountTendered: details?.amountTendered,
+                changeDue: details?.changeDue,
+                referenceNumber: details?.referenceNumber
             });
 
             // Trigger immediate sync for Kitchen Display

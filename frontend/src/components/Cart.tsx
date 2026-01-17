@@ -1,19 +1,41 @@
-import React from 'react';
-import { clsx } from 'clsx';
+import React, { useState } from 'react';
 import { FaTrash, FaMinus, FaPlus, FaCreditCard, FaMoneyBillWave } from 'react-icons/fa';
 import { type OrderItem } from '../db/db';
 import { calculateGhanaTax } from '../modules/TaxEngine';
+import CashPaymentModal from './CashPaymentModal';
+import MoMoPaymentModal from './MoMoPaymentModal';
 
 interface CartProps {
     items: OrderItem[];
     onUpdateQuantity: (index: number, delta: number) => void;
     onRemoveItem: (index: number) => void;
-    onPlaceOrder: (method: 'cash' | 'momo') => void;
+    onPlaceOrder: (method: 'cash' | 'momo', details?: { amountTendered?: number, changeDue?: number, referenceNumber?: string }) => void;
 }
 
 const Cart: React.FC<CartProps> = ({ items, onUpdateQuantity, onRemoveItem, onPlaceOrder }) => {
+    const [showMoMoModal, setShowMoMoModal] = useState(false);
+    const [showCashModal, setShowCashModal] = useState(false);
     const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const taxBreakdown = calculateGhanaTax(subtotal);
+
+    const generateReferenceNumber = () => {
+        const timestamp = Date.now().toString().slice(-4);
+        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        return `ORD-${timestamp}-${random}`;
+    };
+
+    const handlePaymentClick = (method: 'cash' | 'momo') => {
+        if (method === 'momo') {
+            setShowMoMoModal(true);
+        } else if (method === 'cash') {
+            setShowCashModal(true);
+        }
+    };
+
+    const handleCashConfirm = (amountTendered: number, changeDue: number) => {
+        const refNum = generateReferenceNumber();
+        onPlaceOrder('cash', { amountTendered, changeDue, referenceNumber: refNum });
+    };
 
     return (
         <div className="flex flex-col h-full bg-white border-l shadow-xl w-full lg:w-96">
@@ -84,18 +106,35 @@ const Cart: React.FC<CartProps> = ({ items, onUpdateQuantity, onRemoveItem, onPl
 
             <div className="p-4 grid grid-cols-2 gap-3">
                 <button
-                    onClick={() => onPlaceOrder('cash')}
+                    onClick={() => handlePaymentClick('cash')}
                     disabled={items.length === 0}
                     className="flex items-center justify-center space-x-2 bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">
                     <FaMoneyBillWave /> <span>Cash</span>
                 </button>
                 <button
-                    onClick={() => onPlaceOrder('momo')}
+                    onClick={() => handlePaymentClick('momo')}
                     disabled={items.length === 0}
                     className="flex items-center justify-center space-x-2 bg-yellow-500 text-white py-3 rounded-lg font-bold hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed">
                     <FaCreditCard /> <span>MoMo</span>
                 </button>
             </div>
+
+            <MoMoPaymentModal
+                isOpen={showMoMoModal}
+                onClose={() => setShowMoMoModal(false)}
+                amount={taxBreakdown.grandTotal}
+                onSuccess={() => {
+                    const refNum = generateReferenceNumber();
+                    onPlaceOrder('momo', { referenceNumber: refNum });
+                }}
+            />
+
+            <CashPaymentModal
+                isOpen={showCashModal}
+                onClose={() => setShowCashModal(false)}
+                totalAmount={taxBreakdown.grandTotal}
+                onConfirm={handleCashConfirm}
+            />
         </div>
     );
 };

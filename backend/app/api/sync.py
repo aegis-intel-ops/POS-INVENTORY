@@ -25,6 +25,9 @@ class OrderSchema(BaseModel):
     payment_method: str
     created_at: datetime
     synced: Optional[bool] = True
+    amount_tendered: Optional[float] = None
+    change_due: Optional[float] = None
+    reference_number: Optional[str] = None
 
 @router.post("/sync/orders")
 async def sync_orders(orders: List[OrderSchema], db: Session = Depends(get_db)):
@@ -42,7 +45,10 @@ async def sync_orders(orders: List[OrderSchema], db: Session = Depends(get_db)):
             status=order_data.status,
             payment_method=order_data.payment_method,
             created_at=order_data.created_at,
-            items_json=order_data.items # Storing raw JSON as per model definition
+            items_json=order_data.items,
+            amount_tendered=order_data.amount_tendered,
+            change_due=order_data.change_due,
+            reference_number=order_data.reference_number
         )
         db.add(new_order)
         

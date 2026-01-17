@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { useNavigate, Navigate } from 'react-router-dom';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -231,8 +232,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowe
     }
 
     if (!isAuthenticated) {
-        // Will be redirected by App.tsx
-        return null;
+        return <Navigate to="/login" replace />;
     }
 
     if (allowedRoles && user && !allowedRoles.includes(user.role)) {

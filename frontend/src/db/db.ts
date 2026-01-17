@@ -27,6 +27,9 @@ export interface Order {
     totalTax: number;
     status: 'pending' | 'completed' | 'void';
     paymentMethod: 'cash' | 'momo';
+    amountTendered?: number;
+    changeDue?: number;
+    referenceNumber?: string;
     createdAt: Date;
     synced: boolean;
 }

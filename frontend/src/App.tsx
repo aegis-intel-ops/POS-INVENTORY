@@ -27,7 +27,7 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="kitchen" element={
-              <ProtectedRoute allowedRoles={['admin', 'kitchen']}>
+              <ProtectedRoute allowedRoles={['admin', 'kitchen', 'cashier']}>
                 <KitchenDisplay />
               </ProtectedRoute>
             } />

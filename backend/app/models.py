@@ -64,6 +64,9 @@ class Order(Base):
     total_tax = Column(Float)
     status = Column(String)
     payment_method = Column(String)
+    amount_tendered = Column(Float, nullable=True)
+    change_due = Column(Float, nullable=True)
+    reference_number = Column(String, nullable=True)
     kitchen_status = Column(String, default="pending")  # pending, preparing, ready, served
     kitchen_notes = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)

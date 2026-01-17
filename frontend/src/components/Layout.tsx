@@ -2,15 +2,17 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, Outlet } from 'react-router-dom';
 import { clsx } from 'clsx';
-import { FaStore, FaChartBar, FaCog, FaSignOutAlt, FaBoxOpen, FaUsers, FaUtensils, FaClock, FaSync, FaLock } from 'react-icons/fa';
+import { FaStore, FaChartBar, FaCog, FaSignOutAlt, FaUsers, FaUtensils, FaClock, FaSync, FaLock, FaHistory } from 'react-icons/fa';
 import ShiftModal from './ShiftModal';
 import ChangePasswordModal from './ChangePasswordModal';
+import OrderHistoryModal from './OrderHistoryModal';
 
 const Layout: React.FC = () => {
     const { user, logout, activeShift, endShift } = useAuth();
     const navigate = useNavigate();
     const [showEndShiftModal, setShowEndShiftModal] = useState(false);
     const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
 
     const handleLogout = () => {
         logout();
@@ -40,7 +42,7 @@ const Layout: React.FC = () => {
                     )}
 
                     {/* Kitchen Role Access */}
-                    {(user?.role === 'admin' || user?.role === 'kitchen') && (
+                    {(user?.role === 'admin' || user?.role === 'kitchen' || user?.role === 'cashier') && (
                         <NavItem to="/kitchen" icon={<FaUtensils />} label="Kitchen" />
                     )}
 
@@ -62,6 +64,16 @@ const Layout: React.FC = () => {
                         >
                             <span className="text-xl"><FaClock /></span>
                             <span className="hidden lg:inline font-medium">End Shift</span>
+                        </button>
+                    )}
+
+                    {(user?.role === 'admin' || user?.role === 'cashier') && (
+                        <button
+                            onClick={() => setShowHistoryModal(true)}
+                            className="w-full flex items-center justify-center lg:justify-start space-x-3 p-3 rounded-lg text-blue-400 hover:bg-white/10 hover:text-blue-300 transition-colors"
+                        >
+                            <span className="text-xl"><FaHistory /></span>
+                            <span className="hidden lg:inline font-medium">History</span>
                         </button>
                     )}
 
@@ -88,7 +100,7 @@ const Layout: React.FC = () => {
                         <span className="hidden lg:inline text-sm text-gray-300">Sync Active</span>
                     </div>
                 </div>
-            </aside>
+            </aside >
 
             {/* Main Content Area */}
             <main className="flex-1 flex flex-col h-full overflow-hidden relative">
@@ -108,7 +120,7 @@ const Layout: React.FC = () => {
                 <div className="flex-1 overflow-auto p-4 lg:p-6">
                     <Outlet />
                 </div>
-            </main>
+            </main >
 
             <ShiftModal
                 isOpen={showEndShiftModal}
@@ -121,7 +133,8 @@ const Layout: React.FC = () => {
                 onCancel={() => setShowEndShiftModal(false)}
             />
             <ChangePasswordModal isOpen={showPasswordModal} onClose={() => setShowPasswordModal(false)} />
-        </div>
+            <OrderHistoryModal isOpen={showHistoryModal} onClose={() => setShowHistoryModal(false)} />
+        </div >
     );
 };
 

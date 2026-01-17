@@ -14,12 +14,15 @@ interface KitchenOrder {
     kitchen_notes?: string;
 }
 
-const API_URL = 'http://localhost:8000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const KitchenDisplay: React.FC = () => {
-    const { token } = useAuth();
+    const { token, user } = useAuth(); // Get user for role check
     const [orders, setOrders] = useState<KitchenOrder[]>([]);
     const [error, setError] = useState('');
+
+    // Cashiers are in "Observation Mode" only
+    const isReadOnly = user?.role === 'cashier';
 
     const fetchOrders = async () => {
         try {
@@ -125,6 +128,7 @@ const KitchenDisplay: React.FC = () => {
                                 order={order}
                                 onNext={() => updateStatus(order.id, nextStatus(order.kitchen_status))}
                                 colorClass={getStatusColor(order.kitchen_status)}
+                                readOnly={isReadOnly}
                             />
                         ))}
                         {pendingOrders.length === 0 && (
@@ -148,6 +152,7 @@ const KitchenDisplay: React.FC = () => {
                                 onNext={() => updateStatus(order.id, 'served')}
                                 colorClass="bg-green-50 border-green-200"
                                 isReady
+                                readOnly={isReadOnly}
                             />
                         ))}
                         {readyOrders.length === 0 && (
@@ -160,7 +165,7 @@ const KitchenDisplay: React.FC = () => {
     );
 };
 
-const OrderCard = ({ order, onNext, colorClass, isReady }: { order: KitchenOrder, onNext: () => void, colorClass: string, isReady?: boolean }) => {
+const OrderCard = ({ order, onNext, colorClass, isReady, readOnly }: { order: KitchenOrder, onNext: () => void, colorClass: string, isReady?: boolean, readOnly?: boolean }) => {
     // Format items items_json can be array of items
     const items = order.items_json || [];
 
@@ -198,24 +203,26 @@ const OrderCard = ({ order, onNext, colorClass, isReady }: { order: KitchenOrder
                 ))}
             </div>
 
-            <div className="mt-2 flex justify-end">
-                <button
-                    onClick={onNext}
-                    className="flex items-center space-x-1 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors shadow-sm"
-                >
-                    {isReady ? (
-                        <>
-                            <FaCheck className="text-green-600" />
-                            <span>Mark Served</span>
-                        </>
-                    ) : (
-                        <>
-                            <span>{order.kitchen_status === 'pending' ? 'Start Prep' : 'Mark Ready'}</span>
-                            <span className="ml-1">→</span>
-                        </>
-                    )}
-                </button>
-            </div>
+            {!readOnly && (
+                <div className="mt-2 flex justify-end">
+                    <button
+                        onClick={onNext}
+                        className="flex items-center space-x-1 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors shadow-sm"
+                    >
+                        {isReady ? (
+                            <>
+                                <FaCheck className="text-green-600" />
+                                <span>Mark Served</span>
+                            </>
+                        ) : (
+                            <>
+                                <span>{order.kitchen_status === 'pending' ? 'Start Prep' : 'Mark Ready'}</span>
+                                <span className="ml-1">→</span>
+                            </>
+                        )}
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

@@ -15,6 +15,7 @@ interface ReceiptModalProps {
         totalTax: number;
         grandTotal: number;
         paymentMethod: 'cash' | 'momo';
+        referenceNumber?: string;
         createdAt: Date;
     } | null;
 }
@@ -65,8 +66,11 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, orderDetai
                     <div className="receipt-header text-center border-b border-dashed border-gray-400 pb-4 mb-4">
                         <h3 className="text-lg font-bold">GhanaPOS</h3>
                         <p className="text-xs text-gray-500">Restaurant Receipt</p>
-                        <p className="text-xs text-gray-500 mt-2">
-                            {orderDetails.createdAt.toLocaleDateString()} {orderDetails.createdAt.toLocaleTimeString()}
+                        {orderDetails.referenceNumber && (
+                            <p className="text-sm font-bold mt-1">Ref: {orderDetails.referenceNumber}</p>
+                        )}
+                        <p className="text-xs text-gray-500 mt-1">
+                            {new Date(orderDetails.createdAt).toLocaleDateString()} {new Date(orderDetails.createdAt).toLocaleTimeString()}
                         </p>
                     </div>
 

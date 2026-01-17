@@ -28,7 +28,10 @@ export const SyncService = {
                 total_tax: o.totalTax,
                 status: o.status,
                 payment_method: o.paymentMethod,
-                created_at: o.createdAt
+                created_at: o.createdAt,
+                amount_tendered: o.amountTendered,
+                change_due: o.changeDue,
+                reference_number: o.referenceNumber
             }));
 
             const response = await fetch(`${API_URL}/sync/orders`, {
